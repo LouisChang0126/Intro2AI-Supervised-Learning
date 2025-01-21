@@ -1,3 +1,4 @@
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -6,15 +7,14 @@ from sklearn.utils import shuffle
 from loguru import logger
 from sklearn.metrics import accuracy_score
 
-from decision_tree import ConvNet, DecisionTree, get_features_and_labels
-from resnet import ResNet, train, validate
-from utils import myDataset, load_train_dataset, load_test_dataset
+from decision_tree import ConvNet, DecisionTree, get_features_and_labels, get_features_and_paths
+from CNN import CNN, train, validate, test
+from utils import TrainDataset, TestDataset, load_train_dataset, load_test_dataset, plot
 
 """
 Notice:
     1) You can't add any additional package
-    2) You don't have to change anything in main()
-    3) You can ignore the suggested data type if you want
+    2) You can ignore the suggested data type if you want
 """
 
 def main():
@@ -26,49 +26,58 @@ def main():
     images, labels = shuffle(images, labels, random_state=777)
     train_len = int(0.8 * len(images))
 
-    train_images, test_images = images[:train_len], images[train_len:]
-    train_labels, test_labels = labels[:train_len], labels[train_len:]
+    train_images, val_images = images[:train_len], images[train_len:]
+    train_labels, val_labels = labels[:train_len], labels[train_len:]
+    test_images = load_test_dataset()
 
-    train_dataset = myDataset(train_images, train_labels)
-    val_dataset = myDataset(test_images, test_labels)
+    train_dataset = TrainDataset(train_images, train_labels)
+    val_dataset = TrainDataset(val_images, val_labels)
+    test_dataset = TestDataset(test_images)
 
     """
-    Decision Tree
+    Decision Tree - grow tree and validate
     """
     logger.info("Start training Decision Tree")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Initialize Models
     conv_model = ConvNet().to(device)
     tree_model = DecisionTree(max_depth=7)
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
-    # Extract features from training data
     train_features, train_labels = get_features_and_labels(conv_model, train_loader, device)
-
-    # Train the decision tree classifier
     tree_model.fit(train_features, train_labels)
 
-    # Extract features from validation data
     val_features, val_labels = get_features_and_labels(conv_model, val_loader, device)
-
-    # Predict with the trained decision tree
     val_predictions = tree_model.predict(val_features)
 
-    # Calculate accuracy
     val_accuracy = accuracy_score(val_labels, val_predictions)
     logger.info(f"Validation Accuracy: {val_accuracy:.4f}")
 
     """
-    Resnet
+    Decision Tree - test
     """
-    logger.info("Start training ResNet")
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    test_features, test_paths = get_features_and_paths(conv_model, test_loader, device)
+
+    test_predictions = tree_model.predict(test_features)
+
+    results = []
+    for image_name, prediction in zip(test_paths, test_predictions.cpu().numpy()):
+        results.append({'id': image_name, 'prediction': prediction})
+    df = pd.DataFrame(results)
+    df.to_csv('DecisionTree.csv', index=False)
+    print(f"Predictions saved to 'DecisionTree.csv'")
+
+    """
+    CNN - train and validate
+    """
+    logger.info("Start training CNN")
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
-    model = ResNet().to(device)
+    model = CNN().to(device)
     criterion = nn.CrossEntropyLoss()
 
     # Optimizer configuration
@@ -87,18 +96,22 @@ def main():
         train_losses.append(train_loss)
         val_losses.append(val_loss)
 
-        print(f"Epoch {epoch + 1}/{EPOCHS}")
-        print(f"Training Loss: {train_loss:.4f}")
-        print(f"Validation Loss: {val_loss:.4f}")
-        print(f"Validation Acc:  {val_acc:.4f}")
-
-        if val_acc > max_acc:
-            print(f"Saving model, Best Accuracy: {val_acc:.4f}")
-            torch.save(model.state_dict(), f'model.pth')
-            max_acc = val_acc
+        # (TODO) Print the training log to help you monitor the training process
+        #        You can save the model for future usage
+        raise NotImplementedError
 
     logger.info(f"Best Accuracy: {max_acc:.4f}")
 
+    """
+    CNN - plot
+    """
+    plot()
+
+    """
+    CNN - test
+    """
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    test()
 
 if __name__ == '__main__':
     main()

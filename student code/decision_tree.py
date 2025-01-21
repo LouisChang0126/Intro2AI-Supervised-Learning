@@ -64,3 +64,8 @@ def get_features_and_labels(model: ConvNet, dataloader: DataLoader, device)->Tup
     # (TODO) Use the model to extract features from the dataloader, return the features and labels
     raise NotImplementedError
     return features, labels
+
+def get_features_and_paths(model: ConvNet, dataloader: DataLoader, device)->Tuple[List, List]:
+    # (TODO) Use the model to extract features from the dataloader, return the features and path of the images
+    raise NotImplementedError
+    return features, paths
