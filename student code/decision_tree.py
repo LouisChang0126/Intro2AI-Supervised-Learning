@@ -10,7 +10,7 @@ from typing import List, Tuple
 """
 Notice:
     1) You can't add any additional package
-    2) You can add or remove any function "except" fit, grow_tree, predict
+    2) You can add or remove any function "except" fit, _build_tree, predict
     3) You can ignore the suggested data type if you want
 """
 
