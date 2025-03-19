@@ -33,43 +33,7 @@ def main():
     train_dataset = TrainDataset(train_images, train_labels)
     val_dataset = TrainDataset(val_images, val_labels)
     test_dataset = TestDataset(test_images)
-
-    """
-    Decision Tree - grow tree and validate
-    """
-    logger.info("Start training Decision Tree")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    conv_model = ConvNet().to(device)
-    tree_model = DecisionTree(max_depth=7)
-
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-
-    train_features, train_labels = get_features_and_labels(conv_model, train_loader, device)
-    tree_model.fit(train_features, train_labels)
-
-    val_features, val_labels = get_features_and_labels(conv_model, val_loader, device)
-    val_predictions = tree_model.predict(val_features)
-
-    val_accuracy = accuracy_score(val_labels, val_predictions)
-    logger.info(f"Validation Accuracy: {val_accuracy:.4f}")
-
-    """
-    Decision Tree - test
-    """
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-    test_features, test_paths = get_features_and_paths(conv_model, test_loader, device)
-
-    test_predictions = tree_model.predict(test_features)
-
-    results = []
-    for image_name, prediction in zip(test_paths, test_predictions.cpu().numpy()):
-        results.append({'id': image_name, 'prediction': prediction})
-    df = pd.DataFrame(results)
-    df.to_csv('DecisionTree.csv', index=False)
-    print(f"Predictions saved to 'DecisionTree.csv'")
-
     """
     CNN - train and validate
     """
@@ -112,6 +76,43 @@ def main():
     """
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
     test()
+
+    """
+    Decision Tree - grow tree and validate
+    """
+    logger.info("Start training Decision Tree")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    conv_model = ConvNet().to(device)
+    tree_model = DecisionTree(max_depth=7)
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+    train_features, train_labels = get_features_and_labels(conv_model, train_loader, device)
+    tree_model.fit(train_features, train_labels)
+
+    val_features, val_labels = get_features_and_labels(conv_model, val_loader, device)
+    val_predictions = tree_model.predict(val_features)
+
+    val_accuracy = accuracy_score(val_labels, val_predictions)
+    logger.info(f"Validation Accuracy: {val_accuracy:.4f}")
+
+    """
+    Decision Tree - test
+    """
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    test_features, test_paths = get_features_and_paths(conv_model, test_loader, device)
+
+    test_predictions = tree_model.predict(test_features)
+
+    results = []
+    for image_name, prediction in zip(test_paths, test_predictions.cpu().numpy()):
+        results.append({'id': image_name, 'prediction': prediction})
+    df = pd.DataFrame(results)
+    df.to_csv('DecisionTree.csv', index=False)
+    print(f"Predictions saved to 'DecisionTree.csv'")
+
 
 if __name__ == '__main__':
     main()
