@@ -52,7 +52,7 @@ class DecisionTree:
         return left_dataset_X, left_dataset_y, right_dataset_X, right_dataset_y
 
     def _best_split(X: pd.DataFrame, y: np.ndarray):
-        # (TODO) Find the best split for a dataset
+        # (TODO) Use Information Gain to find the best split for a dataset
         raise NotImplementedError
         return best_feature_index, best_threshold
 
